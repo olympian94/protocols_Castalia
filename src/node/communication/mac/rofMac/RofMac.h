@@ -19,8 +19,8 @@ const int SINK_NODE = 0;
 //all nodes will be assigned exclusive ID starting with
 int packetID = 101;
 
-const double T_WAIT = 60/1000;	//ms
-const double T_WINDOW = 10/1000; //ms
+const double T_WAIT = 0.06;	//ms
+const double T_WINDOW = 0.01; //ms
 const int CW = 6; //6 CONTENT WINDOW slots each of 10ms each
 const double ALPHA = 0.75;
 //must maintain the relationship : lambda1 + lambda2 = 1;
