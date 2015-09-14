@@ -7,10 +7,12 @@ void RofMac::startup()
 	trace()<<"Setting channel";
 	toRadioLayer(createRadioCommand(SET_CARRIER_FREQ, 2400 + (DATA_CHANNEL * 5) ));	
 }
+
 /* Handle packet received from upper (network) layer.
  * We need to create a MAC packet, (here it can just be the generic MacPacket)
  * and encapsulate the received network packet before forwarding it to RadioLayer
  */
+
 void RofMac::fromNetworkLayer(cPacket * pkt, int destination)
 {
 	RofPacket* rofpacket = new RofPacket("Data Packet", MAC_LAYER_PACKET);
@@ -29,7 +31,7 @@ void RofMac::fromNetworkLayer(cPacket * pkt, int destination)
 	{
 		trace() << "**broadcasting " <<packetID;
 		packetID++;
-		setTimer(OVERSTEPPING_MODE,T_WAIT);
+		//setTimer(OVERSTEPPING_MODE,T_WAIT);
 		//by default its DATA CHANNEL
 		sendPacket(rofpacket);
 	}
@@ -40,8 +42,6 @@ void RofMac::fromNetworkLayer(cPacket * pkt, int destination)
 void RofMac::fromRadioLayer(cPacket * pkt, double rssi, double lqi)
 {
 	RofPacket *recievedPacket = dynamic_cast <RofPacket*>(pkt);
-	trace()<<"RECIEVED PKT "<<recievedPacket->getPacketID()<<endl;
-
 	if(recievedPacket->getPacketType() == DATA_PACKET) 
 	{
 		if(SELF_MAC_ADDRESS == recievedPacket->getSinkAddress())
@@ -121,7 +121,7 @@ void RofMac::fromRadioLayer(cPacket * pkt, double rssi, double lqi)
 				ATFsent=0;
 				//set timer. After timer expires ATF will be sent
 				setTimer(SEND_ATF, window*T_WINDOW);
-				trace()<<"timer set, setting channel to busy";
+				trace()<<"timer set, setting channel to busy, time = "<<window*T_WINDOW;;
 				//meanwhile set channel to BUSY CHANNEL so that node can listen for BUSY TONE
 				toRadioLayer(createRadioCommand(SET_CARRIER_FREQ, 2400 + (BUSY_CHANNEL * 5) ));
 			}
@@ -138,7 +138,6 @@ void RofMac::fromRadioLayer(cPacket * pkt, double rssi, double lqi)
 		//the sender has recieved ATF from one of the recievers. Now send Busy Tone on channel 2 to suppress
 		//other nodes' activity.
 		trace()<<"Recieved ATF, sending busy";
-		toRadioLayer(createRadioCommand(SET_CARRIER_FREQ, 2400 + (BUSY_CHANNEL * 5) ));
 		sendBusyPacket();
 	} 
 	else if(recievedPacket->getPacketType() == BUSY_PACKET) 
@@ -197,21 +196,26 @@ void RofMac::sendPacket(RofPacket *packet) {
 
 
 void RofMac::sendATF(int sendTo) {
-	trace() << "**sending ATF, setting to DATA CHANNEL";
 	RofPacket* atfpacket = new RofPacket("ATF Packet", MAC_LAYER_PACKET);
+	trace()<<"In sendATF setting to Data Channel";
+	toRadioLayer(createRadioCommand(SET_CARRIER_FREQ, 2400 + (DATA_CHANNEL * 5) ));
 	atfpacket->setDestination(sendTo);
 	atfpacket->setPacketType(ATF_PACKET);
 	sendPacket(atfpacket);
 	//set flag for checking the flow 
 	ATFsent=1;
+	trace()<<"In sendATF setting to Busy Channel again";
 }
 
 void RofMac::sendBusyPacket() {
-	trace() << "**Broadcasting Busy";
 	RofPacket* busypacket = new RofPacket("BUSY Packet", MAC_LAYER_PACKET);
+	trace() << "**Broadcasting Busy, setting channel to Busy Channel";
+	toRadioLayer(createRadioCommand(SET_CARRIER_FREQ, 2400 + (BUSY_CHANNEL * 5) ));
 	busypacket->setDestination(BROADCAST_MAC_ADDRESS);
 	busypacket->setPacketType(BUSY_PACKET);
 	sendPacket(busypacket);
+	trace()<<"Busy packet sent, setting channel to Data Channel";
+	toRadioLayer(createRadioCommand(SET_CARRIER_FREQ, 2400 + (DATA_CHANNEL * 5) ));
 }
 
 void RofMac::timerFiredCallback(int timer) {
@@ -223,11 +227,7 @@ void RofMac::timerFiredCallback(int timer) {
 		//is set for sending ATF, the channel is changed to BUSY CHANNEL
 		//If the node had recieved busy tone, this timer would have been cancelled by code and execution would never reach this block
 		//If execution reaches this block, change channel to data channel and send ATF
-		toRadioLayer(createRadioCommand(SET_CARRIER_FREQ, 2400 + (DATA_CHANNEL * 5) ));
 		sendATF(sender_address);
-		//after sending ATF switch to dual channel and wait for BUSY TONE
-		trace()<<"ATF sent, setting to busy again to listen for confirmation";
-		toRadioLayer(createRadioCommand(SET_CARRIER_FREQ, 2400 + (BUSY_CHANNEL * 5) ));
 		break;
 		case 1 :
 		//overstepping mode
