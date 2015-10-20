@@ -6,6 +6,9 @@
 #include "VirtualMobilityManager.h"
 #include "RofPacket_m.h"
 #include <math.h>
+#include <stdlib.h>     /* srand, rand */
+#include <time.h>       /* time */
+
 
 using namespace std;
 
@@ -27,9 +30,6 @@ const double ALPHA = 0.75;
 const double LAMBDA1 = 0.2;
 const double LAMBDA2 = 0.8;
 //mainatain T_wait = T_window*CW
-
-//flag to tell if overstepping mode is on
-bool overstepping_mode = 0;
 
 enum PacketType {
 	BUSY_PACKET = 0,
@@ -61,7 +61,7 @@ class RofMac: public VirtualMac
 		void sendATF(int sendTo);
 		void timerFiredCallback(int);
 		void sendPacket(RofPacket *packet);
-		void sendBusyPacket();
+		void sendBusyPacket(int);
 		void forwardPacket();
 		double max(double, double);
 		double getEnergyConsumed();
@@ -69,7 +69,11 @@ class RofMac: public VirtualMac
 		//variables for storing node's location
 		double x, y;
 		bool ATFsent=0;
+		bool overstepping_mode = 0;
 		int sender_address;
+	public:
+		int data;
+		int sendBusyTo;
 		//bool sendATF=1;
 };
 
